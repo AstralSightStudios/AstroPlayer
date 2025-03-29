@@ -3,12 +3,11 @@
 <template>
   <div class="page">
     <scroll class="scroll" scroll-y="true" bounces="true">
-      <scroll id="lyrics-container" class="lyrics-container">
-        <div style="flex-direction: column;">
-          <!-- 为每一行歌词绑定 style 和类，其中 activedline 类用于视觉缩放 -->
-          <div for="{{lyrics}}" class="line" style="{{lyricsStyles[$idx]}}">
-            <text id="line{{$idx}}" class="text {{lyricsClasses[$idx]}}">{{$idx}} {{ $item.text }}</text>
-          </div>
+      <scroll id="lyrics-container" scroll-y="true" class="lyrics-container">
+        <div for="{{lyrics}}" class="line {{lyricsClasses[$idx]}}" style="{{lyricsStyles[$idx]}}">
+          <text id="line{{$idx}}" class="text">
+            {{ $item.text }}
+          </text>
         </div>
       </scroll>
     </scroll>
@@ -17,106 +16,101 @@
 
 <script>
 import router from "@system.router"
-import { parseFromNeteaseWebLyrics } from "../../lyric/neteaseweb"
+import {parseFromNeteaseWebLyrics} from "../../lyric/neteaseweb"
 
 export default {
   private: {
-    a: true,
-    // 歌词数组，后续通过解析填充
     lyrics: [],
-    // 当前激活的歌词索引
     currentIndex: 0,
-    // 保存每行歌词高度数据：{ index, normalHeight, scaledHeight }
+    // 存储每行的测量数据：{ index, normalHeight, scaledHeight }
     lyricsHeights: [],
-    // 每行歌词对应的内联样式
+    // 每行对应的行内样式
     lyricsStyles: [],
-    // 每行歌词对应的附加class
-    lyricsClasses: []
+    // 每行对应的附加类名
+    lyricsClasses: [],
+    scaleFactor: 1.4
   },
-  // 测量每行歌词的高度
-  measureLyricsHeights() {
-    const scaleFactor = 1.4 // 与 CSS 中 .activedline 的缩放一致
-    const promises = this.lyrics.map((_, index) => {
-      return new Promise((resolve, reject) => {
-        const elementId = `line${index}`
-        const el = this.$element(elementId)
-        el.getBoundingClientRect({
-          success: (rect) => {
-            const normalHeight = rect.height
-            const scaledHeight = normalHeight * scaleFactor
-            resolve({ index, normalHeight, scaledHeight })
-          },
-          fail: (errorData, errorCode) => {
-            reject({ index, errorData, errorCode })
-          }
+  async measureLyricsHeights() {
+    try {
+      // 遍历所有歌词行，测量每一行的高度
+      const results = await Promise.all(
+        this.lyrics.map((_, index) => {
+          return new Promise((resolve, reject) => {
+            const elementId = `line${index}`
+            const el = this.$element(elementId)
+            el.getBoundingClientRect({
+              success: (rect) => {
+                const normalHeight = rect.height
+                const scaledHeight = normalHeight * this.scaleFactor
+                resolve({index, normalHeight, scaledHeight})
+              },
+              fail: (errorData, errorCode) => {
+                reject({index, errorData, errorCode})
+              }
+            })
+          })
         })
-      })
-    })
-    Promise.all(promises).then((results) => {
+      )
       this.lyricsHeights = results
-      // 初始化每一行的样式，默认使用正常高度
-      const styles = results.map(data => ({ height: data.normalHeight + 'px' }))
-      this.lyricsStyles = styles
+      // 初始化每一行的样式：先用正常高度
+      this.lyricsStyles = results.map((data) => ({height: data.normalHeight + "px"}))
       // 更新当前激活行的样式
       this.updateActiveStyle()
-      // 自动滚动到激活行
+      // 滚动到当前激活行
       this.scrollToActive()
-    })
+    } catch (error) {
+      console.error("测量歌词高度出错：", error)
+    }
   },
-  // 更新当前激活行的样式（使用 splice 替换数组元素以触发更新）
   updateActiveStyle() {
     if (this.lyricsHeights.length && this.currentIndex < this.lyricsHeights.length) {
       const currData = this.lyricsHeights[this.currentIndex]
+      // 当前激活行使用放大高度，并添加激活样式
       this.lyricsStyles.splice(this.currentIndex, 1, {
-        height: currData.scaledHeight + 'px',
-        color: "#FF0000" // 激活行显示红色
+        height: currData.scaledHeight + "px"
       })
+      this.lyricsClasses.splice(this.currentIndex, 1, "active-text")
     }
   },
-  // 自动滚动使当前激活歌词居中显示
   scrollToActive() {
-    const activeEl = this.$element(`line${this.currentIndex}`)
-    activeEl.getBoundingClientRect({
-      success: (rect) => {
-        const container = this.$element('lyrics-container')
-        container.getBoundingClientRect({
-          success: (containerRect) => {
-            container.scrollTo({
-              top: rect.top + rect.height / 2 - containerRect.height / 2,
-              behavior: 'smooth'
-            })
-          }
-        })
-      }
+    const containerEl = this.$element("lyrics-container")
+
+    let offset = 0
+    for (let i = 0; i < this.currentIndex; i++) {
+      offset += this.lyricsHeights[i].normalHeight
+    }
+
+    const activeLineHeight = this.lyricsHeights[this.currentIndex].scaledHeight
+    const activeCenter = offset + activeLineHeight / 2
+
+    console.log(activeCenter)
+    containerEl.scrollTo({
+      top: activeCenter
     })
   },
-  // 切换到下一句歌词，更新上一个和当前歌词的样式
   playNext() {
     if (this.currentIndex < this.lyrics.length - 1) {
       const prevIndex = this.currentIndex
-      // 将上一行恢复为正常状态
+      // 恢复上一行样式（恢复正常高度）
       const prevData = this.lyricsHeights[prevIndex]
       this.lyricsStyles.splice(prevIndex, 1, {
-         height: prevData.normalHeight + 'px',
-         "background-color": "#000000"
+        height: prevData.normalHeight + "px"
       })
       this.lyricsClasses.splice(prevIndex, 1, "disactive-text")
-      // 更新当前激活行索引
+
+      // 切换到下一行，并更新样式
       this.currentIndex++
-      // 更新当前行样式
       const currData = this.lyricsHeights[this.currentIndex]
       this.lyricsStyles.splice(this.currentIndex, 1, {
-        height: currData.scaledHeight + 'px',
-        "background-color": "#FF0000"
+        height: currData.scaledHeight + "px"
       })
       this.lyricsClasses.splice(this.currentIndex, 1, "active-text")
-      // 滚动到当前行
+      // 重新计算滚动目标
       this.scrollToActive()
     }
   },
-  // onShow 生命周期，初始化歌词与样式
   onShow() {
-    // 解析歌词
+    // 解析歌词文本
     this.lyrics = parseFromNeteaseWebLyrics(
       `[00:03.35]握不住的他
 [00:04.68]演唱:林俊杰
@@ -176,15 +170,16 @@ export default {
 [03:10.20]握不住的他 放下也罢
 [03:22.78][02:39.51][01:27.16]`
     )
-    // 初始化每行样式为空对象
+    // 初始化样式与类名数组
     this.lyricsStyles = new Array(this.lyrics.length).fill({})
     this.lyricsClasses = new Array(this.lyrics.length).fill({})
-    // 延时确保视图渲染完毕后再测量高度
+    // 延时确保视图渲染完毕后再开始测量
     setTimeout(() => {
       this.measureLyricsHeights()
-      this.lyrics.forEach(ly => {
+      // 根据歌词中的 time 属性依次调用 playNext
+      this.lyrics.forEach((ly) => {
         setTimeout(() => {
-          this.playNext();
+          this.playNext()
         }, ly.time)
       })
     }, 1000)
