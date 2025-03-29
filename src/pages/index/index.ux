@@ -1,0 +1,198 @@
+<import name="switch-bar" src="@components/SwitchBar/SwitchBar.ux"></import>
+
+<template>
+  <div class="page">
+    <scroll class="scroll" scroll-y="true" bounces="true">
+      <scroll id="lyrics-container" class="lyrics-container">
+        <div style="flex-direction: column;">
+          <!-- 为每一行歌词绑定 style 和类，其中 activedline 类用于视觉缩放 -->
+          <div for="{{lyrics}}" class="line" style="{{lyricsStyles[$idx]}}">
+            <text id="line{{$idx}}" class="text {{lyricsClasses[$idx]}}">{{$idx}} {{ $item.text }}</text>
+          </div>
+        </div>
+      </scroll>
+    </scroll>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import { parseFromNeteaseWebLyrics } from "../../lyric/neteaseweb"
+
+export default {
+  private: {
+    a: true,
+    // 歌词数组，后续通过解析填充
+    lyrics: [],
+    // 当前激活的歌词索引
+    currentIndex: 0,
+    // 保存每行歌词高度数据：{ index, normalHeight, scaledHeight }
+    lyricsHeights: [],
+    // 每行歌词对应的内联样式
+    lyricsStyles: [],
+    // 每行歌词对应的附加class
+    lyricsClasses: []
+  },
+  // 测量每行歌词的高度
+  measureLyricsHeights() {
+    const scaleFactor = 1.4 // 与 CSS 中 .activedline 的缩放一致
+    const promises = this.lyrics.map((_, index) => {
+      return new Promise((resolve, reject) => {
+        const elementId = `line${index}`
+        const el = this.$element(elementId)
+        el.getBoundingClientRect({
+          success: (rect) => {
+            const normalHeight = rect.height
+            const scaledHeight = normalHeight * scaleFactor
+            resolve({ index, normalHeight, scaledHeight })
+          },
+          fail: (errorData, errorCode) => {
+            reject({ index, errorData, errorCode })
+          }
+        })
+      })
+    })
+    Promise.all(promises).then((results) => {
+      this.lyricsHeights = results
+      // 初始化每一行的样式，默认使用正常高度
+      const styles = results.map(data => ({ height: data.normalHeight + 'px' }))
+      this.lyricsStyles = styles
+      // 更新当前激活行的样式
+      this.updateActiveStyle()
+      // 自动滚动到激活行
+      this.scrollToActive()
+    })
+  },
+  // 更新当前激活行的样式（使用 splice 替换数组元素以触发更新）
+  updateActiveStyle() {
+    if (this.lyricsHeights.length && this.currentIndex < this.lyricsHeights.length) {
+      const currData = this.lyricsHeights[this.currentIndex]
+      this.lyricsStyles.splice(this.currentIndex, 1, {
+        height: currData.scaledHeight + 'px',
+        color: "#FF0000" // 激活行显示红色
+      })
+    }
+  },
+  // 自动滚动使当前激活歌词居中显示
+  scrollToActive() {
+    const activeEl = this.$element(`line${this.currentIndex}`)
+    activeEl.getBoundingClientRect({
+      success: (rect) => {
+        const container = this.$element('lyrics-container')
+        container.getBoundingClientRect({
+          success: (containerRect) => {
+            container.scrollTo({
+              top: rect.top + rect.height / 2 - containerRect.height / 2,
+              behavior: 'smooth'
+            })
+          }
+        })
+      }
+    })
+  },
+  // 切换到下一句歌词，更新上一个和当前歌词的样式
+  playNext() {
+    if (this.currentIndex < this.lyrics.length - 1) {
+      const prevIndex = this.currentIndex
+      // 将上一行恢复为正常状态
+      const prevData = this.lyricsHeights[prevIndex]
+      this.lyricsStyles.splice(prevIndex, 1, {
+         height: prevData.normalHeight + 'px',
+         "background-color": "#000000"
+      })
+      this.lyricsClasses.splice(prevIndex, 1, "disactive-text")
+      // 更新当前激活行索引
+      this.currentIndex++
+      // 更新当前行样式
+      const currData = this.lyricsHeights[this.currentIndex]
+      this.lyricsStyles.splice(this.currentIndex, 1, {
+        height: currData.scaledHeight + 'px',
+        "background-color": "#FF0000"
+      })
+      this.lyricsClasses.splice(this.currentIndex, 1, "active-text")
+      // 滚动到当前行
+      this.scrollToActive()
+    }
+  },
+  // onShow 生命周期，初始化歌词与样式
+  onShow() {
+    // 解析歌词
+    this.lyrics = parseFromNeteaseWebLyrics(
+      `[00:03.35]握不住的他
+[00:04.68]演唱:林俊杰
+[01:35.26][00:12.34]
+[00:12.89]银白色月牙 映照着脚ㄚ
+[00:17.29]一寸寸 一遍遍
+[00:19.69]亲吻浪花
+[00:22.22]泥沙挣扎 浸湿眼角
+[00:26.78]刹那 和着眼泪 分不清呀
+[00:31.16]
+[00:32.10]你给的说法 说走到分岔
+[00:36.87]又无力 又疲倦
+[00:39.46]付出爱的代价
+[00:41.93]无力自拔 心放不下
+[00:46.57]勉强 爱的盈缺 变成时差
+[00:52.41]爱情不只玫瑰花
+[00:54.37]还有不安的惩罚
+[00:56.81]快乐呀 误解呀
+[00:59.18]随着时间都会增长
+[01:01.55]退潮的爱像刀疤
+[01:54.81][00:50.75]
+[01:04.14]伤过给一个说法
+[01:06.57]放了才能够快乐
+[01:09.01]让心好好休息一下
+[01:11.44]握不住的他 放下也罢
+[01:16.80]专辑：她说 概念自选辑
+[01:21.45]Dumbbird @ 虾米歌词组 制作
+[01:36.42]你给的说法 说走到分岔
+[01:40.93]又无力 又疲倦
+[01:43.55]付出爱的代价
+[01:46.01]无力自拔 心放不下
+[01:50.73]勉强 爱的盈缺 变成时差
+[01:55.90]爱情不只玫瑰花
+[01:58.46]还有不安的惩罚
+[02:00.84]快乐呀 误解呀
+[02:03.27]随着时间都会增长
+[02:05.70]退潮的爱像刀疤
+[02:08.26]伤过给一个说法
+[02:10.66]放了才能够快乐
+[02:13.13]让心好好休息一下
+[02:15.53]握不住的沙 放下也罢
+[02:28.59]专辑：她说 概念自选辑
+[02:35.14]Dumbbird @ 虾米歌词组 制作
+[02:40.64]爱情不只玫瑰花
+[02:42.89]还有不安的惩罚
+[02:45.26]快乐呀 误解呀
+[02:47.69]随着时间都会增长
+[02:50.17]退潮的爱像刀疤
+[02:52.66]伤过给一个说法
+[03:14.74][01:15.46]
+[02:55.06]放了才能够快乐
+[02:57.49]让心好好休息一下
+[03:08.86][02:19.43]
+[03:00.08]放了才能够快乐
+[03:02.49]让心好好休息一下
+[03:05.02]握不住的沙 放下也罢
+[03:10.20]握不住的他 放下也罢
+[03:22.78][02:39.51][01:27.16]`
+    )
+    // 初始化每行样式为空对象
+    this.lyricsStyles = new Array(this.lyrics.length).fill({})
+    this.lyricsClasses = new Array(this.lyrics.length).fill({})
+    // 延时确保视图渲染完毕后再测量高度
+    setTimeout(() => {
+      this.measureLyricsHeights()
+      this.lyrics.forEach(ly => {
+        setTimeout(() => {
+          this.playNext();
+        }, ly.time)
+      })
+    }, 1000)
+  }
+}
+</script>
+
+<style lang="less">
+@import "@less/global.less";
+@import "./index.less";
+</style>

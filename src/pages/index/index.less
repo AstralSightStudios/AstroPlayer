@@ -1,0 +1,42 @@
+/* 歌词容器 */
+.lyrics-container {
+    flex-direction: column;
+    width: 80%;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.line {
+    align-items: flex-start;
+    justify-content: flex-start;
+    transition-property: height;
+    transition-duration: 300ms;
+    transition-timing-function: ease;
+}
+
+.text {
+    color: white;
+    font-size: 28px;
+    transform-origin: 0px 0px;
+}
+
+@keyframes active-anim {
+    0% {
+        transform: scale(1.0);
+    }
+    100% {
+        transform: scale(1.4);
+    }
+}
+
+.disactive-text {
+    animation-name: active-anim;
+    animation-duration: 300ms;
+    animation-direction: reverse;
+}
+
+.active-text {
+    animation-name: active-anim;
+    animation-duration: 300ms;
+    animation-direction: normal;
+}

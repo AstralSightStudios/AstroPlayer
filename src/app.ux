@@ -1,0 +1,22 @@
+<script>
+// third-party deps
+import dayjs from "dayjs"
+
+import * as ui from "./ui/ui"
+import * as tools from "./tools"
+
+export default {
+  dayjs: dayjs,
+  async onCreate() {
+    console.log("app created")
+
+    global.ui = ui
+    global.ui.Init()
+
+    global.DEVICE_INFO = await tools.getDeviceInformation()
+  },
+  onDestroy() {
+    console.log("app destroyed")
+  }
+}
+</script>

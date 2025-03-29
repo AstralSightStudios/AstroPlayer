@@ -1,0 +1,66 @@
+{
+  "package": "moe.searchstars.ap",
+  "name": "AstroPlayer",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "minPlatformVersion": 1000,
+  "icon": "/common/logo.png",
+  "deviceTypeList": [
+    "watch"
+  ],
+  "features": [
+    {
+      "name": "system.router"
+    },
+    {
+      "name": "system.geolocation"
+    },
+    {
+      "name": "system.fetch"
+    },
+    {
+      "name": "system.storage"
+    },
+    {
+      "name": "system.crypto"
+    },
+    {
+      "name": "system.device"
+    },
+    {
+      "name": "system.folme"
+    },
+    {
+      "name": "system.interconnect"
+    },
+    {
+      "name": "system.prompt"
+    },
+    {
+      "name": "system.network"
+    },
+    {
+      "name": "system.file"
+    },
+    {
+      "name": "system.request"
+    }
+  ],
+  "config": {
+    "logLevel": "log",
+    "designWidth": 466,
+    "background": {
+      "features": [
+        "system.geolocation"
+      ]
+    }
+  },
+  "router": {
+    "entry": "pages/index",
+    "pages": {
+      "pages/index": {
+        "component": "index"
+      }
+    }
+  }
+}
