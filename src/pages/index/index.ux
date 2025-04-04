@@ -3,9 +3,9 @@
 <template>
   <div class="page">
     <scroll class="scroll" scroll-y="true" bounces="true">
-      <scroll id="lyrics-container" scroll-y="true" class="lyrics-container">
+      <scroll id="lyrics-container" scroll-y="true" class="lyrics-container" @scroll="onScroll" bounces="true">
         <div for="{{lyrics}}" class="line {{lyricsClasses[$idx]}}" style="{{lyricsStyles[$idx]}}">
-          <text id="line{{$idx}}" class="text">
+          <text id="line{{$idx}}" class="text" style="opacity: {{lyricsStyles[$idx].opacity || 0.6}}">
             {{ $item.text }}
           </text>
         </div>
@@ -16,23 +16,36 @@
 
 <script>
 import router from "@system.router"
+import audio from "@system.audio"
+import folme from "@system.folme"
 import {parseFromNeteaseWebLyrics} from "../../lyric/neteaseweb"
+
+// 工具函数：延时等待
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 export default {
   private: {
     lyrics: [],
     currentIndex: 0,
-    // 存储每行的测量数据：{ index, normalHeight, scaledHeight }
+    currentScroll: 0, // 记录当前滚动高度
+    zeroIndexWithInit: true,
     lyricsHeights: [],
-    // 每行对应的行内样式
+    lyricsOffsets: [],
     lyricsStyles: [],
-    // 每行对应的附加类名
     lyricsClasses: [],
-    scaleFactor: 1.4
+    scaleFactor: 1.2,
+    //delayOffset: 1000,  //模拟器
+    delayOffset: 2000,
+    timer: null         // 定时器标识
+  },
+  // 滚动事件回调，记录滚动距离
+  onScroll(e) {
+    this.currentScroll = e.scrollY
   },
   async measureLyricsHeights() {
     try {
-      // 遍历所有歌词行，测量每一行的高度
       const results = await Promise.all(
         this.lyrics.map((_, index) => {
           return new Promise((resolve, reject) => {
@@ -40,8 +53,8 @@ export default {
             const el = this.$element(elementId)
             el.getBoundingClientRect({
               success: (rect) => {
-                const normalHeight = rect.height
-                const scaledHeight = normalHeight * this.scaleFactor
+                const normalHeight = rect.height + 15
+                const scaledHeight = (normalHeight * this.scaleFactor) + 15
                 resolve({index, normalHeight, scaledHeight})
               },
               fail: (errorData, errorCode) => {
@@ -52,136 +65,164 @@ export default {
         })
       )
       this.lyricsHeights = results
-      // 初始化每一行的样式：先用正常高度
       this.lyricsStyles = results.map((data) => ({height: data.normalHeight + "px"}))
-      // 更新当前激活行的样式
+      let offset = 0
+      this.lyricsOffsets = results.map((data) => {
+        const currentOffset = offset
+        offset += data.normalHeight + 10
+        return currentOffset
+      })
       this.updateActiveStyle()
-      // 滚动到当前激活行
       this.scrollToActive()
     } catch (error) {
       console.error("测量歌词高度出错：", error)
     }
   },
   updateActiveStyle() {
-    if (this.lyricsHeights.length && this.currentIndex < this.lyricsHeights.length) {
-      const currData = this.lyricsHeights[this.currentIndex]
-      // 当前激活行使用放大高度，并添加激活样式
-      this.lyricsStyles.splice(this.currentIndex, 1, {
-        height: currData.scaledHeight + "px"
-      })
-      this.lyricsClasses.splice(this.currentIndex, 1, "active-text")
-    }
-  },
-  scrollToActive() {
-    const containerEl = this.$element("lyrics-container")
-
-    let offset = 0
-    for (let i = 0; i < this.currentIndex; i++) {
-      offset += this.lyricsHeights[i].normalHeight
-    }
-
-    const activeLineHeight = this.lyricsHeights[this.currentIndex].scaledHeight
-    const activeCenter = offset + activeLineHeight / 2
-
-    console.log(activeCenter)
-    containerEl.scrollTo({
-      top: activeCenter
+    if (!this.lyricsHeights.length) return;
+    // 遍历所有歌词行，根据 currentIndex 设置样式
+    this.lyricsHeights.forEach((data, i) => {
+      if (i < this.currentIndex) {
+        // 已播放歌词：设置 disactive 样式
+        this.lyricsStyles.splice(i, 1, {
+          height: data.normalHeight + "px",
+          opacity: 0.6
+        })
+        this.lyricsClasses.splice(i, 1, "disactive-text")
+      } else if (i === this.currentIndex) {
+        // 当前激活歌词：active 样式
+        this.lyricsStyles.splice(i, 1, {
+          height: data.scaledHeight + "px",
+          opacity: 1.0
+        })
+        this.lyricsClasses.splice(i, 1, "active-text")
+      } else {
+        // 后续歌词：默认样式
+        this.lyricsStyles.splice(i, 1, {
+          height: data.normalHeight + "px",
+          opacity: 0.6
+        })
+        this.lyricsClasses.splice(i, 1, "")
+      }
     })
   },
-  playNext() {
-    if (this.currentIndex < this.lyrics.length - 1) {
-      const prevIndex = this.currentIndex
-      // 恢复上一行样式（恢复正常高度）
-      const prevData = this.lyricsHeights[prevIndex]
-      this.lyricsStyles.splice(prevIndex, 1, {
-        height: prevData.normalHeight + "px"
-      })
-      this.lyricsClasses.splice(prevIndex, 1, "disactive-text")
+  async scrollToActive() {
+    // 根据当前音频播放时间进行校准，单位转换：audio.currentTime (秒) -> 毫秒，并加上 delayOffset
+    const currentAudioTimeMs = (audio.currentTime * 1000) + this.delayOffset
+    let calibratedIndex = 0
+    for (let i = 0; i < this.lyrics.length; i++) {
+      if (this.lyrics[i].time <= currentAudioTimeMs) {
+        calibratedIndex = i
+      } else {
+        break
+      }
+    }
+    this.currentIndex = calibratedIndex
+    this.updateActiveStyle() // 同步更新所有行的样式
 
-      // 切换到下一行，并更新样式
-      this.currentIndex++
-      const currData = this.lyricsHeights[this.currentIndex]
-      this.lyricsStyles.splice(this.currentIndex, 1, {
-        height: currData.scaledHeight + "px"
+    if (!this.lyricsHeights.length) return
+    const index = this.currentIndex
+    const activeLineHeight = this.lyricsHeights[index].normalHeight
+    const duration = 0.3 // 动画时长，单位秒
+    const reboundOffset = activeLineHeight * 0.3
+
+    /*
+    // 重置所有行的 translateY 状态
+    this.lyricsHeights.forEach((_, i) => {
+      folme.setTo({
+        id: `line${i}`,
+        toState: {translateY: 0}
       })
-      this.lyricsClasses.splice(this.currentIndex, 1, "active-text")
-      // 重新计算滚动目标
+    })
+
+    // 为激活行以外的行添加回弹动画
+    for (let i = 0; i < index; i++) {
+      folme.to({
+        id: `line${i}`,
+        toState: {translateY: -reboundOffset},
+        config: {duration: duration, delay: (index - i) * 0.05}
+      })
+    }
+    for (let i = index + 1; i < this.lyricsHeights.length; i++) {
+      folme.to({
+        id: `line${i}`,
+        toState: {translateY: reboundOffset},
+        config: {duration: duration, delay: (i - index) * 0.05}
+      })
+    }
+
+    await wait(duration * 1000)
+    */
+
+    // 动态获取容器和当前激活行的位置，利用记录的 currentScroll
+    this.$element("lyrics-container").getBoundingClientRect({
+      success: (containerRect) => {
+        this.$element(`line${index}`).getBoundingClientRect({
+          success: (lineRect) => {
+            const containerHeight = containerRect.height
+            const desiredTop = (containerHeight - lineRect.height) / 2
+            const targetScroll =
+              this.currentScroll + (lineRect.top - containerRect.top) - desiredTop
+            this.$element("lyrics-container").scrollTo({top: targetScroll + 25, behavior: "smooth"})
+          }
+        })
+      }
+    })
+
+    /*
+    await wait(100)
+    // 恢复所有行的 translateY 为 0
+    this.lyricsHeights.forEach((_, i) => {
+      folme.to({
+        id: `line${i}`,
+        toState: {translateY: 0},
+        config: {duration: duration}
+      })
+    })*/
+  },
+  // 保留 playNext 方法，以便手动控制（本例中主要使用定时器更新）
+  playNext() {
+    if (this.currentIndex < this.lyrics.length - 1 && !this.zeroIndexWithInit) {
+      this.currentIndex++
+      this.updateActiveStyle()
       this.scrollToActive()
     }
+    else{
+      audio.play()
+      this.zeroIndexWithInit = false
+    }
+  },
+  startLyricTimer() {
+    // 每 100 毫秒检查一次当前音频播放时间，更新歌词滚动与状态
+    this.timer = setInterval(() => {
+      const currentAudioTimeMs = (audio.currentTime * 1000) + this.delayOffset
+      let newIndex = 0
+      for (let i = 0; i < this.lyrics.length; i++) {
+        if (this.lyrics[i].time <= currentAudioTimeMs) {
+          newIndex = i
+        } else {
+          break
+        }
+      }
+      if (newIndex !== this.currentIndex) {
+        this.currentIndex = newIndex
+        this.updateActiveStyle()
+        this.scrollToActive()
+      }
+    }, 100)
   },
   onShow() {
-    // 解析歌词文本
     this.lyrics = parseFromNeteaseWebLyrics(
-      `[00:03.35]握不住的他
-[00:04.68]演唱:林俊杰
-[01:35.26][00:12.34]
-[00:12.89]银白色月牙 映照着脚ㄚ
-[00:17.29]一寸寸 一遍遍
-[00:19.69]亲吻浪花
-[00:22.22]泥沙挣扎 浸湿眼角
-[00:26.78]刹那 和着眼泪 分不清呀
-[00:31.16]
-[00:32.10]你给的说法 说走到分岔
-[00:36.87]又无力 又疲倦
-[00:39.46]付出爱的代价
-[00:41.93]无力自拔 心放不下
-[00:46.57]勉强 爱的盈缺 变成时差
-[00:52.41]爱情不只玫瑰花
-[00:54.37]还有不安的惩罚
-[00:56.81]快乐呀 误解呀
-[00:59.18]随着时间都会增长
-[01:01.55]退潮的爱像刀疤
-[01:54.81][00:50.75]
-[01:04.14]伤过给一个说法
-[01:06.57]放了才能够快乐
-[01:09.01]让心好好休息一下
-[01:11.44]握不住的他 放下也罢
-[01:16.80]专辑：她说 概念自选辑
-[01:21.45]Dumbbird @ 虾米歌词组 制作
-[01:36.42]你给的说法 说走到分岔
-[01:40.93]又无力 又疲倦
-[01:43.55]付出爱的代价
-[01:46.01]无力自拔 心放不下
-[01:50.73]勉强 爱的盈缺 变成时差
-[01:55.90]爱情不只玫瑰花
-[01:58.46]还有不安的惩罚
-[02:00.84]快乐呀 误解呀
-[02:03.27]随着时间都会增长
-[02:05.70]退潮的爱像刀疤
-[02:08.26]伤过给一个说法
-[02:10.66]放了才能够快乐
-[02:13.13]让心好好休息一下
-[02:15.53]握不住的沙 放下也罢
-[02:28.59]专辑：她说 概念自选辑
-[02:35.14]Dumbbird @ 虾米歌词组 制作
-[02:40.64]爱情不只玫瑰花
-[02:42.89]还有不安的惩罚
-[02:45.26]快乐呀 误解呀
-[02:47.69]随着时间都会增长
-[02:50.17]退潮的爱像刀疤
-[02:52.66]伤过给一个说法
-[03:14.74][01:15.46]
-[02:55.06]放了才能够快乐
-[02:57.49]让心好好休息一下
-[03:08.86][02:19.43]
-[03:00.08]放了才能够快乐
-[03:02.49]让心好好休息一下
-[03:05.02]握不住的沙 放下也罢
-[03:10.20]握不住的他 放下也罢
-[03:22.78][02:39.51][01:27.16]`
+      `\n[00:01.58]一生的爱\n[00:02.65]作词:吴剑泓 作曲:林俊杰\n[00:04.31]演唱：林俊杰\n[00:05.96]\n[00:15.39]真的可以结束吗\n[00:18.80]已经不需要回答\n[00:22.38]满天的雪在下\n[00:26.11]将我的心蒸发\n[00:29.41]如果爱可以放下\n[00:33.04]为何那么多挣扎\n[00:36.90]那冷风烙心如刀割\n[00:40.62]仿佛爱的惩罚\n[02:23.20][01:50.38][00:46.63]\n[02:27.05][01:50.94][00:49.63]我终于明白对你的爱\n[02:30.96][01:54.65][00:53.57]绝不可能更改\n[02:33.60][01:57.62][00:56.35]我的心像片雪花为你存在\n[02:38.00][02:02.01][01:00.73]冰封成依赖\n[02:41.63][02:05.17][01:03.81]当全世界都把你忘怀\n[02:45.39][02:09.21][01:07.93]我绝不离开\n[02:58.83][02:48.07][02:11.90][01:10.65]风雪淹埋不了期待\n[03:02.85][02:51.68][02:15.76][01:14.69]我只想要给你我一生的爱\n[03:13.10][01:22.38]\n[01:33.14]爱如果放下\n[01:36.20]不要那么多挣扎\n[01:39.97]冷风也让我更坚决\n[01:43.60]面对爱的惩罚\n`
     )
-    // 初始化样式与类名数组
     this.lyricsStyles = new Array(this.lyrics.length).fill({})
     this.lyricsClasses = new Array(this.lyrics.length).fill({})
-    // 延时确保视图渲染完毕后再开始测量
     setTimeout(() => {
       this.measureLyricsHeights()
-      // 根据歌词中的 time 属性依次调用 playNext
-      this.lyrics.forEach((ly) => {
-        setTimeout(() => {
-          this.playNext()
-        }, ly.time)
-      })
+      audio.src = "/common/testaudio.mp3"
+      audio.play()
+      // 启动歌词同步定时器
+      this.startLyricTimer()
     }, 1000)
   }
 }
