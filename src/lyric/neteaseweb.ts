@@ -5,7 +5,7 @@ export function parseFromNeteaseWebLyrics(lyricsStr: string): LyricLine[] {
     // 按行拆分歌词文本
     const lines = lyricsStr.split('\n');
     // 匹配时间标签格式，如 [00:03.35]s
-    const timeReg = /\[(\d{2}):(\d{2}\.\d{2})\]/g;
+    const timeReg = /\[(\d{2}):(\d{2}\.\d{1,4})\]/g;
 
     lines.forEach(line => {
         if (!line.trim()) return;

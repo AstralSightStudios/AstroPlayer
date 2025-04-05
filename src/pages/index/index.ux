@@ -36,8 +36,8 @@ export default {
     lyricsStyles: [],
     lyricsClasses: [],
     scaleFactor: 1.2,
-    //delayOffset: 1000,  //模拟器
-    delayOffset: 2000,
+    delayOffset: 1000,  //模拟器
+    //delayOffset: 2000,
     timer: null         // 定时器标识
   },
   // 滚动事件回调，记录滚动距离
@@ -126,34 +126,6 @@ export default {
     const duration = 0.3 // 动画时长，单位秒
     const reboundOffset = activeLineHeight * 0.3
 
-    /*
-    // 重置所有行的 translateY 状态
-    this.lyricsHeights.forEach((_, i) => {
-      folme.setTo({
-        id: `line${i}`,
-        toState: {translateY: 0}
-      })
-    })
-
-    // 为激活行以外的行添加回弹动画
-    for (let i = 0; i < index; i++) {
-      folme.to({
-        id: `line${i}`,
-        toState: {translateY: -reboundOffset},
-        config: {duration: duration, delay: (index - i) * 0.05}
-      })
-    }
-    for (let i = index + 1; i < this.lyricsHeights.length; i++) {
-      folme.to({
-        id: `line${i}`,
-        toState: {translateY: reboundOffset},
-        config: {duration: duration, delay: (i - index) * 0.05}
-      })
-    }
-
-    await wait(duration * 1000)
-    */
-
     // 动态获取容器和当前激活行的位置，利用记录的 currentScroll
     this.$element("lyrics-container").getBoundingClientRect({
       success: (containerRect) => {
@@ -163,22 +135,11 @@ export default {
             const desiredTop = (containerHeight - lineRect.height) / 2
             const targetScroll =
               this.currentScroll + (lineRect.top - containerRect.top) - desiredTop
-            this.$element("lyrics-container").scrollTo({top: targetScroll + 25, behavior: "smooth"})
+            this.$element("lyrics-container").scrollTo({top: targetScroll, behavior: "smooth"})
           }
         })
       }
     })
-
-    /*
-    await wait(100)
-    // 恢复所有行的 translateY 为 0
-    this.lyricsHeights.forEach((_, i) => {
-      folme.to({
-        id: `line${i}`,
-        toState: {translateY: 0},
-        config: {duration: duration}
-      })
-    })*/
   },
   // 保留 playNext 方法，以便手动控制（本例中主要使用定时器更新）
   playNext() {
@@ -213,8 +174,9 @@ export default {
   },
   onShow() {
     this.lyrics = parseFromNeteaseWebLyrics(
-      `\n[00:01.58]一生的爱\n[00:02.65]作词:吴剑泓 作曲:林俊杰\n[00:04.31]演唱：林俊杰\n[00:05.96]\n[00:15.39]真的可以结束吗\n[00:18.80]已经不需要回答\n[00:22.38]满天的雪在下\n[00:26.11]将我的心蒸发\n[00:29.41]如果爱可以放下\n[00:33.04]为何那么多挣扎\n[00:36.90]那冷风烙心如刀割\n[00:40.62]仿佛爱的惩罚\n[02:23.20][01:50.38][00:46.63]\n[02:27.05][01:50.94][00:49.63]我终于明白对你的爱\n[02:30.96][01:54.65][00:53.57]绝不可能更改\n[02:33.60][01:57.62][00:56.35]我的心像片雪花为你存在\n[02:38.00][02:02.01][01:00.73]冰封成依赖\n[02:41.63][02:05.17][01:03.81]当全世界都把你忘怀\n[02:45.39][02:09.21][01:07.93]我绝不离开\n[02:58.83][02:48.07][02:11.90][01:10.65]风雪淹埋不了期待\n[03:02.85][02:51.68][02:15.76][01:14.69]我只想要给你我一生的爱\n[03:13.10][01:22.38]\n[01:33.14]爱如果放下\n[01:36.20]不要那么多挣扎\n[01:39.97]冷风也让我更坚决\n[01:43.60]面对爱的惩罚\n`
+      `[00:10.356]Get her name and get her number\n[00:12.904]Find out all of the things that we have in common\n[00:16.779]Never all the differences, oh, yeah\n[00:20.790]Meet her parents, meet her brother\n[00:23.091]Then she starts sleepin' over the crib on weekends\n[00:26.785]Like a real relationship, oh, no\n[00:31.097]\n[00:31.788]For me the stars are alignin'\n[00:34.643]But for her it's bad timin'\n[00:37.363]So she just can't be mine\n[00:41.424]\n[00:41.827]I don't think that I like her anymore\n[00:45.506]Cause they're all the same\n[00:47.223]All they wanna do is break my heart, my heart (Oh-oh)\n[00:51.964]I don't think that I like her anymore\n[00:55.616]Cause they 're all the same\n[00:57.349]They just wanna see me fall apart, apart (Oh-oh)\n[01:01.910]\n[01:02.088]So I hook up on a rebound\n[01:04.354]And I say that I'm gonna be single for life\n[01:08.103]But she's so pretty and nice (Pretty and nice)\n[01:12.120]So I made just one the exception\n[01:14.708]But I find out eventually I'm not her type\n[01:18.624]Baby, that's the reason why, that\n[01:22.712]\n[01:22.859]For me the stars are alignin'\n[01:26.358]But for her it's bad timin'\n[01:28.871]So she just can't be mine\n[01:32.579]\n[01:33.061]I don't think that I like her anymore\n[01:37.149]Cause they're all the same\n[01:38.668]All they wanna do is break my heart, my heart (Oh-oh)\n[01:43.371]I don't think that I like her anymore\n[01:47.288]Cause they're all the same\n[01:49.042]They just wanna see me fall apart, apart (Oh-oh)\n[01:53.257]\n[02:04.414]I'm trying not to be bitter\n[02:07.577]But damn it, I miss her\n[02:10.074]'Cause she's one of a kind\n[02:12.578]\n[02:14.722]For me the stars are alignin'\n[02:17.815]But for her it's bad timin'\n[02:20.504]So she just can't be mine\n[02:24.029]\n[02:24.680]I don't think that I like her anymore\n[02:28.635]Cause they're all the same\n[02:30.320]All they wanna do is break my heart, my heart (Oh-oh)\n[02:34.996]I don't think that I like her anymore\n[02:38.985]Cause they're all the same\n[02:40.623]They just wanna see me fall apart, apart (Oh-oh)\n[02:45.352]\n[02:53.183]Then we fall, we fall, fall, fall apart now\n[02:55.659]I don't think that I like her anymore\n[02:59.315]Cause they're all the same\n[03:01.215]They just wanna see me fall apart, apart (Oh-oh)\n`
     )
+    console.log(this.lyrics)
     this.lyricsStyles = new Array(this.lyrics.length).fill({})
     this.lyricsClasses = new Array(this.lyrics.length).fill({})
     setTimeout(() => {
