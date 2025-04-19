@@ -1,0 +1,55 @@
+<import name="title-bar" src="@components/TitleBar/TitleBar.ux"></import>
+
+<template>
+    <div class="page">
+        <scroll class="scroll {{scrclass}}" scroll-y="true" bounces="true">
+            <title-bar title="账号管理"></title-bar>
+            <div class="platform" @click="NCMLogin">
+                <image src="/common/logo_ncm.png" class="platimg"></image>
+                <text class="platname">{{username.ncm}}</text>
+                <image class="arrow" src="/common/arrow_right.png"></image>
+            </div>
+            <div class="platform" @click="WIP">
+                <image src="/common/logo_qqmusic.png" class="platimg"></image>
+                <text class="platname">{{username.qqmusic}}</text>
+                <image class="arrow" src="/common/arrow_right.png"></image>
+            </div>
+        </scroll>
+    </div>
+</template>
+
+<script>
+import router from "@system.router"
+import prompt from "@system.prompt"
+
+let session = null
+
+export default {
+  private: {
+    scrclass: "",
+    username: {
+        ncm: "暂未登录",
+        qqmusic: "暂未登录"
+    }
+  },
+  NCMLogin(){
+    router.push({
+        uri: "pages/login/ncm"
+    })
+  },
+  WIP(){
+    prompt.showToast({
+        message: "该功能暂未开放"
+    })
+  },
+  onShow(){
+    session = global.mp.ncm.GetCurrentSession();
+    this.username.ncm = session.login_info.content.profile.nickname || "暂未登录"
+  }
+}
+</script>
+
+<style lang="less">
+@import "@less/global.less";
+@import "./accountmanager.less";
+</style>

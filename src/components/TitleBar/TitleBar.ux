@@ -1,18 +1,18 @@
 <import name="time-view" src="@components/TimeView/TimeView.ux"></import>
 
 <template>
-  <div style="background-color: rgba(0,0,0,0)">
+  <div>
     <div if="{{!useRowLayout}}" class="comp-root">
       <time-view style="position: absolute;"></time-view>
       <div class="titlebar" @click="RouterBack()">
-        <image src="/common/back.png" style="margin-right: 5px; margin-top: 2px"></image>
-        <text style="font-size: 30px; font-weight: 600; margin-top: 3px">{{ _parentVM.$t(title) }}</text>
+        <image src="/common/back.png" style="width: 30px; height: 30px; margin-right: 5px"></image>
+        <text style="font-size: 32px; font-weight: normal; margin-top: 3px">{{ _parentVM.$t(title) }}</text>
       </div>
     </div>
     <div if="{{useRowLayout}}" class="comp-root row">
       <div class="titlebar bar-row" style="{{barRowStyle}}" @click="RouterBack()">
-        <image src="/common/back.png" style="margin-right: 5px; margin-top: 2px"></image>
-        <text style="font-size: 30px; font-weight: 600">{{ _parentVM.$t(title) }}</text>
+        <image src="/common/back.png" style="width: 30px; height: 30px; margin-right: 5px"></image>
+        <text style="font-size: 32px; font-weight: normal">{{ _parentVM.$t(title) }}</text>
         <time-view style="position: relative;"></time-view>
       </div>
     </div>
@@ -50,7 +50,6 @@ export default {
 @import '@less/global.less';
 
 .comp-root {
-  background-color: rgba(0,0,0,0);
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -61,11 +60,10 @@ export default {
 }
 
 .titlebar {
-  background-color: rgba(0,0,0,0);
-  margin-top: 40px;
+  margin-top: 45px;
   align-items: center;
   justify-content: center;
-  padding-bottom: 6px;
+  padding-bottom: 10px;
 }
 
 .bar-row {

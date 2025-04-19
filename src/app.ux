@@ -5,6 +5,18 @@ import dayjs from "dayjs"
 import * as ui from "./ui/ui"
 import * as tools from "./tools"
 
+import { HashHexDigest } from "./musicplatforms/ncm/src/utils/cryptools"
+
+// QuickJS Polyfill 补全
+import "./polyfill-texted-qjs"
+import "./polyfill-urlsearchparams-qjs"
+
+// 音乐平台全局挂载
+global.mp = {}
+
+import * as ncm from "./musicplatforms/ncm/src/ncm"
+global.mp.ncm = ncm
+
 export default {
   dayjs: dayjs,
   async onCreate() {

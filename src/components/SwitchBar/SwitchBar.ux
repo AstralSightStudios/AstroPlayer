@@ -37,7 +37,7 @@ export default {
     var pagename = router.getState().name.split("/")
 
     router.push({
-      uri: "pages/arealist",
+      uri: "pages/app/arealist",
       params: {
         lastpage: pagename[pagename.length - 1]
       }
@@ -75,8 +75,8 @@ export default {
 .bar {
   align-items: center;
   flex-direction: row;
-  margin-top: 40px;
-  padding-bottom: 6px;
+  margin-top: 45px;
+  padding-bottom: 15px;
 }
 
 .bar-row {

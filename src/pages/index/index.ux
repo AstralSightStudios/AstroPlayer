@@ -18,7 +18,9 @@
 import router from "@system.router"
 import audio from "@system.audio"
 import folme from "@system.folme"
-import {parseFromNeteaseWebLyrics} from "../../lyric/neteaseweb"
+import { parseFromLrcString } from "../../lyric/parsers/lrc"
+
+import { GetTrackLyricsNew } from "../../musicplatforms/ncm/src/apis/track"
 
 // 工具函数：延时等待
 function wait(ms) {
@@ -172,10 +174,10 @@ export default {
       }
     }, 100)
   },
-  onShow() {
-    this.lyrics = parseFromNeteaseWebLyrics(
-      `[00:10.356]Get her name and get her number\n[00:12.904]Find out all of the things that we have in common\n[00:16.779]Never all the differences, oh, yeah\n[00:20.790]Meet her parents, meet her brother\n[00:23.091]Then she starts sleepin' over the crib on weekends\n[00:26.785]Like a real relationship, oh, no\n[00:31.097]\n[00:31.788]For me the stars are alignin'\n[00:34.643]But for her it's bad timin'\n[00:37.363]So she just can't be mine\n[00:41.424]\n[00:41.827]I don't think that I like her anymore\n[00:45.506]Cause they're all the same\n[00:47.223]All they wanna do is break my heart, my heart (Oh-oh)\n[00:51.964]I don't think that I like her anymore\n[00:55.616]Cause they 're all the same\n[00:57.349]They just wanna see me fall apart, apart (Oh-oh)\n[01:01.910]\n[01:02.088]So I hook up on a rebound\n[01:04.354]And I say that I'm gonna be single for life\n[01:08.103]But she's so pretty and nice (Pretty and nice)\n[01:12.120]So I made just one the exception\n[01:14.708]But I find out eventually I'm not her type\n[01:18.624]Baby, that's the reason why, that\n[01:22.712]\n[01:22.859]For me the stars are alignin'\n[01:26.358]But for her it's bad timin'\n[01:28.871]So she just can't be mine\n[01:32.579]\n[01:33.061]I don't think that I like her anymore\n[01:37.149]Cause they're all the same\n[01:38.668]All they wanna do is break my heart, my heart (Oh-oh)\n[01:43.371]I don't think that I like her anymore\n[01:47.288]Cause they're all the same\n[01:49.042]They just wanna see me fall apart, apart (Oh-oh)\n[01:53.257]\n[02:04.414]I'm trying not to be bitter\n[02:07.577]But damn it, I miss her\n[02:10.074]'Cause she's one of a kind\n[02:12.578]\n[02:14.722]For me the stars are alignin'\n[02:17.815]But for her it's bad timin'\n[02:20.504]So she just can't be mine\n[02:24.029]\n[02:24.680]I don't think that I like her anymore\n[02:28.635]Cause they're all the same\n[02:30.320]All they wanna do is break my heart, my heart (Oh-oh)\n[02:34.996]I don't think that I like her anymore\n[02:38.985]Cause they're all the same\n[02:40.623]They just wanna see me fall apart, apart (Oh-oh)\n[02:45.352]\n[02:53.183]Then we fall, we fall, fall, fall apart now\n[02:55.659]I don't think that I like her anymore\n[02:59.315]Cause they're all the same\n[03:01.215]They just wanna see me fall apart, apart (Oh-oh)\n`
-    )
+  async InitLycris(){
+    const origLyric = await GetTrackLyricsNew(1854644975)
+    console.log(origLyric)
+
     console.log(this.lyrics)
     this.lyricsStyles = new Array(this.lyrics.length).fill({})
     this.lyricsClasses = new Array(this.lyrics.length).fill({})
@@ -186,6 +188,9 @@ export default {
       // 启动歌词同步定时器
       this.startLyricTimer()
     }, 1000)
+  },
+  onShow() {
+    this.InitLycris()
   }
 }
 </script>

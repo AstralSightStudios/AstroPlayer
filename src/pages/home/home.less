@@ -1,0 +1,57 @@
+@import "@less/defs.less";
+@import "@less/color.less";
+
+.page {
+    background-size: cover;
+}
+
+.scroll {
+    background-color: rgba(0, 0, 0, 0.65)
+}
+
+.topbar {
+    .flex-row(0px, @blankColor);
+
+    width: 350px;
+    margin-top: 100px;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.titlebox {
+    .flex-column(0px, @blankColor);
+}
+
+.hitip {
+    font-size: 32px;
+    font-weight: 600;
+}
+
+.tip {
+    font-size: 22px;
+    color: gray;
+}
+
+.settings {
+    width: 50px;
+    object-fit: scale-down;
+}
+
+.infostream {
+    margin-top: 15px;
+    flex-direction: column;
+    width: 350px;
+    background-color: @blankColor;
+}
+
+.boldtxt {
+    font-size: 30px;
+    font-weight: 600;
+}
+
+.block {
+    border-radius: 25px;
+    background-color: @baseColor;
+    width: 200px;
+    height: 125px;
+}

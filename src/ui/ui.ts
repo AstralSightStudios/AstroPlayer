@@ -48,6 +48,7 @@ export function OnBackPressTriggered(){
     GlobalActions.UpdateCurrentPageName()
     global.vmPool[global.currentPageName].scrclass = "scroll-backanim"
     setTimeout(() => {
+        global.vmPool[global.currentPageName].scrclass = "scroll-back-hidden"
         GlobalActions.ClearCurrentVmSrcClass()
         router.back()
 

@@ -1,6 +1,6 @@
-import { LyricLine, LyricLineSplit } from "./lyric";
+import { LyricLine, LyricLineSplit } from "../lyric";
 
-export function parseFromNeteaseWebLyrics(lyricsStr: string): LyricLine[] {
+export function parseFromLrcString(lyricsStr: string): LyricLine[] {
     const result: { lyrics: LyricLine[] } = { lyrics: [] };
     // 按行拆分歌词文本
     const lines = lyricsStr.split('\n');

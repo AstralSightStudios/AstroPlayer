@@ -1,0 +1,102 @@
+<import name="title-bar" src="@components/TitleBar/TitleBar.ux"></import>
+
+<template>
+    <div class="page">
+        <scroll class="scroll {{scrclass}}" scroll-y="true" bounces="true">
+            <title-bar title="登录网易云"></title-bar>
+            <div class="qrborder" style="margin-top: 10px">
+                <qrcode if="{{qrvalue}}" class="qr" value="{{qrvalue}}"></qrcode>
+                <image if="{{!qrvalue}}" src="/common/loading.gif"></image>
+            </div>
+            <div class="tip" style="margin-top: 20px">
+              <text class="tipt">请使用</text>
+              <text class="tipt" style="color: #E60026; font-weight: 600">网易云音乐</text>
+              <text class="tipt">扫码登录</text>
+            </div>
+            <text class="tipt">完成后请耐心等待</text>
+        </scroll>
+    </div>
+</template>
+
+<script>
+import prompt from "@system.prompt"
+import router from "@system.router"
+import { asyncFile } from "../../../asyncapi/file"
+
+export default {
+  private: {
+    scrclass: "",
+    qrid: "",
+    qrcheckInterval: null,
+    qrvalue: "",
+
+    checking: false
+  },
+  async GetQR(){
+    const qrID = (await global.mp.ncm.apis.login.LoginQrcodeUnikey())["unikey"]
+    this.qrid = qrID
+    this.qrvalue = `https://music.163.com/login?codekey=${qrID}`
+
+    this.qrcheckInterval = setInterval(async() => {
+      if(!this.checking){
+        this.checking = true
+        const resp = await global.mp.ncm.apis.login.LoginQrcodeCheck(this.qrid)
+
+        if (resp["code"] == 803 || resp["code"] == 800){
+            clearInterval(this.qrcheckInterval)
+            console.log("登录成功", resp)
+
+            try{
+              const currentSession = global.mp.ncm.GetCurrentSession()
+              const currentLoginStatus = await global.mp.ncm.apis.login.GetCurrentLoginStatus();
+              global.mp.ncm.apis.login.WriteLoginInfo(currentLoginStatus, currentSession)
+              const dumpString = await global.mp.ncm.DumpSessionAsString(currentSession)
+
+              await asyncFile.writeText({
+                uri: "internal://files/ncmsession",
+                text: dumpString
+              })
+
+              prompt.showToast({
+                message: "登录成功"
+              })
+              setTimeout(() => {
+                this.$options.onBackPress()
+              }, 1000)
+            }
+            catch(e){
+              console.error(e)
+            }
+        }
+
+        this.checking = false
+      }
+    }, 3000)
+  },
+  /*
+  async test_LoginByLoadSession(){
+    try{
+      const TESTCOOKIE = `PYNCMeyJlYXBpX2NvbmZpZyI6eyJvcyI6ImlQaG9uZSBPUyIsImFwcHZlciI6IjEwLjAuMCIsIm9zdmVyIjoiMTYuMiIsImNoYW5uZWwiOiJkaXN0cmlidXRpb24iLCJkZXZpY2VJZCI6InB5bmNtISJ9LCJsb2dpbl9pbmZvIjp7InRpY2siOjE3NDQ1MTM1MzczNTAsImNvbnRlbnQiOnsiY29kZSI6MjAwLCJhY2NvdW50Ijp7ImlkIjoxNDU1Mjk1MjY1LCJ1c2VyTmFtZSI6IjFfKioqKioqKio1MTYiLCJ0eXBlIjoxLCJzdGF0dXMiOjAsIndoaXRlbGlzdEF1dGhvcml0eSI6MCwiY3JlYXRlVGltZSI6MTQ5OTYxMDg0MTEzNiwidG9rZW5WZXJzaW9uIjowLCJiYW4iOjAsImJhb3l1ZVZlcnNpb24iOi0yLCJkb25hdGVWZXJzaW9uIjowLCJ2aXBUeXBlIjoxMSwiYW5vbmltb3VzVXNlciI6ZmFsc2UsInBhaWRGZWUiOnRydWV9LCJwcm9maWxlIjp7InVzZXJJZCI6MTQ1NTI5NTI2NSwidXNlclR5cGUiOjAsIm5pY2tuYW1lIjoic3RhcnNxd3FfIiwiYXZhdGFySW1nSWQiOjEwOTk1MTE3MDQ5Mzc5NDAwMCwiYXZhdGFyVXJsIjoiaHR0cHM6Ly9wMS5tdXNpYy4xMjYubmV0LzlnT3lqX2VNU2M4MkFuY3puRUlKX2c9PS8xMDk5NTExNzA0OTM3OTQxNTYuanBnIiwiYmFja2dyb3VuZEltZ0lkIjoxMDk5NTExNjQ4MjM1NjkwMDAsImJhY2tncm91bmRVcmwiOiJodHRwOi8vcDEubXVzaWMuMTI2Lm5ldC95d25xbk9wamplc0Z1X0tZTkxfRmV3PT0vMTA5OTUxMTY0ODIzNTY5Mjc2LmpwZyIsInNpZ25hdHVyZSI6Iui/meS4quS6uuS4jeaHku+8jOS9huS5n+ayoeWGmei/meS6m+S4nOilv+OAgiIsImNyZWF0ZVRpbWUiOjE1MjYwOTkzNTIxMzEsInVzZXJOYW1lIjoiMV8qKioqKioqKjUxNiIsImFjY291bnRUeXBlIjoxLCJzaG9ydFVzZXJOYW1lIjoiKioqKioqKio1MTYiLCJiaXJ0aGRheSI6MTI1NTcwMzc5NDkzMCwiYXV0aG9yaXR5IjowLCJnZW5kZXIiOjEsImFjY291bnRTdGF0dXMiOjAsInByb3ZpbmNlIjo0NDAwMDAsImNpdHkiOjQ0MDEwMCwiYXV0aFN0YXR1cyI6MCwiZGVzY3JpcHRpb24iOm51bGwsImRldGFpbERlc2NyaXB0aW9uIjpudWxsLCJkZWZhdWx0QXZhdGFyIjpmYWxzZSwiZXhwZXJ0VGFncyI6bnVsbCwiZXhwZXJ0cyI6bnVsbCwiZGpTdGF0dXMiOjAsImxvY2F0aW9uU3RhdHVzIjozMCwidmlwVHlwZSI6MTEwLCJmb2xsb3dlZCI6ZmFsc2UsIm11dHVhbCI6ZmFsc2UsImF1dGhlbnRpY2F0ZWQiOmZhbHNlLCJsYXN0TG9naW5UaW1lIjoxNzQ0NTEzNTIzODQwLCJsYXN0TG9naW5JUCI6IjEyMC4xOTYuMTIzLjIwNCIsInJlbWFya05hbWUiOm51bGwsInZpcHR5cGVWZXJzaW9uIjoxNzQyMzkzMTYwOTIyLCJhdXRoZW50aWNhdGlvblR5cGVzIjowLCJhdmF0YXJEZXRhaWwiOm51bGwsImFuY2hvciI6ZmFsc2V9fSwic3VjY2VzcyI6dHJ1ZX0sImNzcmZfdG9rZW4iOiIwNzhkMWFhNDhkZTgyMTEzZDdhNzIxNTdiOWFiZDY1YSIsImNvb2tpZXMiOnsiTk1USUQiOiIwME9YWUpqTVhSaEpDX2c3a1VUaVZ6Y0xuSjdBWklBQUFHV0xSczhoQSIsIk1VU0lDX0FfVCI6IjE0OTk2MTA4NDExMzYiLCJNVVNJQ19SX1QiOiIxNTI2MDk5MzUyMTMxIiwiX19jc3JmIjoiMDc4ZDFhYTQ4ZGU4MjExM2Q3YTcyMTU3YjlhYmQ2NWEiLCJNVVNJQ19VIjoiMDBENjJCQjk0NTVDRENDOUVFOTg1QjU5QjRCQkQzRDU2NjFDRkRBN0RFQ0YwNUQ3MUYyQTE5NzRGNUNBREMxRjU4RjlCMjFBQkQzNUY1MEJERTE3NTkzNUEzQzY4MDc5NDUyQjdGRjhGMEVCMjdBOUZFNEIyMzFBRUUyMUMxMUYzOUUxNEU2N0M5OTFCMTI1RTUxM0NEMkJCRTY4QjJFNUQ4RjdFNjVDNTYwRTNEOUE0ODA1QjlEM0VFQjQwMUEzMDY4MzJFMzAyN0RGNDU1ODBBMTE1MjBDQjQ0ODcwQ0QxMUY5Q0ExNjhGRUFDMEQ0MEQ3NjZGNTg0NjAxNTM4MTY4MjIzOEMwQjcwQjEwREIzRDJCM0RGQUZBNDIyNjdCRDlDNzUzRDU2OUZDMEFEMTVERjVDMjJBRDZGRDU5QUQzQjFDM0Y2QzU5OUMwRUFBRTE3MjZGNTZGMkUxRjJCNEY0RDEzQzc2RjZEMjg2RUJDQkFBNDNBNTVBMjdBRTlBMDg3MTg2OTc3Qzk5RjhFMEJCQTYwMEM3Mjc2MjQxMThGRkM5ODRBMjI2Q0EwNzc1NzRFNjM0RTM4NjhFQzNBNjNBNDdFMzBFNTRCQzYyNjE3RjM5QUExRDdCQUU5NjQzNzQwQjhFMzJCNjY4QkY2NUVFMDA4OUI5ODI0ODVBRUE4NDQ0MTRBNzAwNjc5REFCRTIzQThBNzk2Mjk0RENBRjE5IiwiTVVTSUNfU05TIjoiIn19`;
+      const loadedSession = await global.mp.ncm.LoadSessionFromString(TESTCOOKIE);
+      await global.mp.ncm.SetCurrentSession(loadedSession);
+
+      const currentLoginStatus = await global.mp.ncm.apis.login.GetCurrentLoginStatus();
+      console.log("cLS", currentLoginStatus)  
+    }
+    catch(e){
+      console.error(e)
+    }
+  },
+  */
+  onShow(){
+    setTimeout(() => {
+      this.GetQR()
+    }, 1000)
+  }
+}
+</script>
+
+<style lang="less">
+@import "@less/global.less";
+@import "./ncm.less";
+</style>

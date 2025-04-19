@@ -59,10 +59,22 @@
     }
   },
   "router": {
-    "entry": "pages/index",
+    "entry": "pages/entry/init",
     "pages": {
       "pages/index": {
         "component": "index"
+      },
+      "pages/entry/init": {
+        "component": "init"
+      },
+      "pages/home": {
+        "component": "home"
+      },
+      "pages/login/accountmanager": {
+        "component": "accountmanager"
+      },
+      "pages/login/ncm": {
+        "component": "ncm"
       }
     }
   }

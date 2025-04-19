@@ -1,0 +1,54 @@
+<import name="title-bar" src="@components/TitleBar/TitleBar.ux"></import>
+
+<template>
+    <div class="page">
+        <scroll class="scroll acjc {{scrclass}}" scroll-y="true" bounces="true">
+            <image src="/common/loading_reversed.gif" style="width: 50px"></image>
+            <text style="margin-top: 20px; font-weight: 600; font-size: 32px">初始化内容...</text>
+        </scroll>
+    </div>
+</template>
+
+<script>
+import router from "@system.router"
+import { asyncFile } from "../../../asyncapi/file"
+
+export default {
+  private: {
+    scrclass: ""
+  },
+  async NCMLogin(){
+    try{
+        const sessionb64 = await asyncFile.readText({
+            uri: "internal://files/ncmsession"
+        })
+        const loadedSession = await global.mp.ncm.LoadSessionFromString(sessionb64)
+        global.mp.ncm.SetCurrentSession(loadedSession)
+        const currentLoginStatus = await global.mp.ncm.apis.login.GetCurrentLoginStatus()
+
+        const currentSession = global.mp.ncm.GetCurrentSession()
+        global.mp.ncm.apis.login.WriteLoginInfo(currentLoginStatus, currentSession)
+        global.mp.ncm.SetCurrentSession(currentSession)
+    }
+    catch(e){
+        console.log("[Pages.Entry.Init.NCMLogin] NCMSession not found.")
+    }
+  },
+  async InitSteps(){
+    await this.NCMLogin()
+    router.replace({
+        uri: "pages/home"
+    })
+  },
+  onInit(){
+    setTimeout(() => {
+      this.InitSteps()
+    }, 1000);
+  }
+}
+</script>
+
+<style lang="less">
+@import "@less/global.less";
+@import "./init.less";
+</style>

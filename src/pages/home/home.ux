@@ -1,0 +1,59 @@
+<import name="title-bar" src="@components/TitleBar/TitleBar.ux"></import>
+
+<template>
+    <div class="page" style="background-image: {{session.login_info.content.profile.backgroundUrl}};">
+        <scroll class="scroll {{scrclass}}" scroll-y="true" bounces="true">
+            <div class="topbar">
+                <div class="titlebox">
+                    <text class="hitip">Hi, {{session.login_info.content.profile.nickname}}</text>
+                    <text class="tip">今天该从哪里开始呢？</text>
+                </div>
+                <image src="/common/icons8-settings-96.png" class="settings" @click="GoSettings"></image>
+            </div>
+            <div class="infostream">
+                <text class="boldtxt">我的歌单</text>
+                <div class="block">
+                    <text>我喜欢</text>
+                </div>
+            </div>
+        </scroll>
+    </div>
+</template>
+
+<script>
+import router from "@system.router"
+import prompt from "@system.prompt"
+
+const session = global.mp.ncm.GetCurrentSession();
+
+export default {
+  private: {
+    scrclass: "",
+    session,
+  },
+  GoSettings(){
+    router.push({
+        uri: "pages/login/accountmanager"
+    })
+  },
+  async Load(){
+
+    var playlists = await global.mp.ncm.apis.user.GetUserPlaylists(this.session.login_info.content.account.id)
+    const loveid = playlists.playlist[0].id
+    playlists = null
+    var tracks = (await global.mp.ncm.apis.playlist.GetPlaylistInfo(loveid, 0, true, 10)).playlist.trackIds
+    tracks.length = 9
+    var lycirs = await global.mp.ncm.apis.track.GetTrackLyrics(1462659723)
+    var lycirsLRC = await global.mp.ncm.apis.track.GetTrackLyricsNew(1462659723)
+  },
+  onShow(){
+    console.log(this.session)
+    this.Load()
+  }
+}
+</script>
+
+<style lang="less">
+@import "@less/global.less";
+@import "./home.less";
+</style>
